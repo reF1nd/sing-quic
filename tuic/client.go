@@ -9,12 +9,14 @@ import (
 	"time"
 
 	"github.com/sagernet/quic-go"
-	"github.com/sagernet/sing-quic"
+	qtls "github.com/sagernet/sing-quic"
+	"github.com/sagernet/sing-quic/udphop"
 	"github.com/sagernet/sing/common"
 	"github.com/sagernet/sing/common/baderror"
 	"github.com/sagernet/sing/common/buf"
 	"github.com/sagernet/sing/common/bufio"
 	E "github.com/sagernet/sing/common/exceptions"
+	"github.com/sagernet/sing/common/logger"
 	M "github.com/sagernet/sing/common/metadata"
 	N "github.com/sagernet/sing/common/network"
 	aTLS "github.com/sagernet/sing/common/tls"
@@ -23,6 +25,7 @@ import (
 type ClientOptions struct {
 	Context           context.Context
 	Dialer            N.Dialer
+	Logger            logger.Logger
 	ServerAddress     M.Socksaddr
 	TLSConfig         aTLS.Config
 	UUID              [16]byte
@@ -31,11 +34,13 @@ type ClientOptions struct {
 	UDPStream         bool
 	ZeroRTTHandshake  bool
 	Heartbeat         time.Duration
+	udphop.UDPHopOption
 }
 
 type Client struct {
 	ctx               context.Context
 	dialer            N.Dialer
+	logger            logger.Logger
 	serverAddr        M.Socksaddr
 	tlsConfig         aTLS.Config
 	quicConfig        *quic.Config
@@ -45,6 +50,8 @@ type Client struct {
 	udpStream         bool
 	zeroRTTHandshake  bool
 	heartbeat         time.Duration
+	hopAddr           *udphop.UDPHopAddr
+	hopInterval       time.Duration
 
 	connAccess sync.RWMutex
 	conn       *clientQUICConnection
@@ -66,9 +73,21 @@ func NewClient(options ClientOptions) (*Client, error) {
 	default:
 		return nil, E.New("unknown congestion control algorithm: ", options.CongestionControl)
 	}
+	var hopAddr *udphop.UDPHopAddr
+	if options.HopPorts != "" {
+		if options.HopInterval < udphop.MinimumHopInterval {
+			options.HopInterval = udphop.MinimumHopInterval
+		}
+		var err error
+		hopAddr, err = udphop.ResolveUDPHopAddr(options.ServerAddress.AddrString(), options.HopPorts)
+		if err != nil {
+			return nil, E.Cause(err, "parse hop ports")
+		}
+	}
 	return &Client{
 		ctx:               options.Context,
 		dialer:            options.Dialer,
+		logger:            options.Logger,
 		serverAddr:        options.ServerAddress,
 		tlsConfig:         options.TLSConfig,
 		quicConfig:        quicConfig,
@@ -78,6 +97,8 @@ func NewClient(options ClientOptions) (*Client, error) {
 		udpStream:         options.UDPStream,
 		zeroRTTHandshake:  options.ZeroRTTHandshake,
 		heartbeat:         options.Heartbeat,
+		hopAddr:           hopAddr,
+		hopInterval:       time.Duration(options.HopInterval) * time.Second,
 	}, nil
 }
 
@@ -105,10 +126,27 @@ func (c *Client) offerNew(ctx context.Context) (*clientQUICConnection, error) {
 		return nil, err
 	}
 	var quicConn quic.Connection
+	var packetConn net.PacketConn
+	packetConn = bufio.NewUnbindPacketConn(udpConn)
+	if c.hopAddr != nil {
+		packetConn, err = udphop.NewUDPHopPacketConn(
+			c.hopAddr,
+			c.hopInterval,
+			packetConn,
+			func() (net.PacketConn, error) {
+				return c.dialer.ListenPacket(c.ctx, c.serverAddr)
+			},
+			c.logger,
+		)
+		if err != nil {
+			_ = udpConn.Close()
+			return nil, E.Cause(err, "create udphop PacketConn")
+		}
+	}
 	if c.zeroRTTHandshake {
-		quicConn, err = qtls.DialEarly(c.ctx, bufio.NewUnbindPacketConn(udpConn), udpConn.RemoteAddr(), c.tlsConfig, c.quicConfig)
+		quicConn, err = qtls.DialEarly(c.ctx, packetConn, udpConn.RemoteAddr(), c.tlsConfig, c.quicConfig)
 	} else {
-		quicConn, err = qtls.Dial(c.ctx, bufio.NewUnbindPacketConn(udpConn), udpConn.RemoteAddr(), c.tlsConfig, c.quicConfig)
+		quicConn, err = qtls.Dial(c.ctx, packetConn, udpConn.RemoteAddr(), c.tlsConfig, c.quicConfig)
 	}
 	if err != nil {
 		udpConn.Close()
