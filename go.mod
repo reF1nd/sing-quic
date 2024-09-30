@@ -21,3 +21,5 @@ require (
 	golang.org/x/text v0.19.0 // indirect
 	golang.org/x/tools v0.24.0 // indirect
 )
+
+replace github.com/sagernet/quic-go => github.com/reF1nd/quic-go v0.48.1-beta.1.1
