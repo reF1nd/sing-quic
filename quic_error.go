@@ -17,6 +17,9 @@ func WrapError(err error) error {
 	if err == nil {
 		return nil
 	}
+	if err == io.EOF {
+		return io.EOF
+	}
 	return &quicError{err: err}
 }
 
@@ -32,8 +35,7 @@ func (e *quicError) Is(target error) bool {
 	if errors.Is(e.err, target) {
 		return true
 	}
-	switch target {
-	case net.ErrClosed:
+	if target == net.ErrClosed {
 		var streamErr *quic.StreamError
 		if errors.As(e.err, &streamErr) {
 			return !streamErr.Remote && streamErr.ErrorCode == 0
@@ -49,11 +51,6 @@ func (e *quicError) Is(target error) bool {
 		var h3Err *http3.Error
 		if errors.As(e.err, &h3Err) {
 			return h3Err.ErrorCode == http3.ErrCodeNoError
-		}
-	case io.EOF:
-		var streamErr *quic.StreamError
-		if errors.As(e.err, &streamErr) {
-			return !streamErr.Remote && streamErr.ErrorCode == 0
 		}
 	}
 	return false
