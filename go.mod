@@ -26,3 +26,8 @@ require (
 	golang.org/x/sys v0.47.0 // indirect
 	golang.org/x/text v0.40.0 // indirect
 )
+
+replace (
+	github.com/sagernet/quic-go => github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260924064108-532bb9d79a9c
+	github.com/sagernet/sing => github.com/reF1nd/sing v0.9.6-0.20260924064047-8886a87bf633
+)
