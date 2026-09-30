@@ -28,6 +28,8 @@ github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260924064108-532bb9d79a9c h
 github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260924064108-532bb9d79a9c/go.mod h1:hmLC8GJPp+BrpBgrgJnacvI4fZGIhasuy1ROJJ8GR4E=
 github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260929132147-61be6c4e6a3b h1:TagdEBJjlSU2ShccArsNS8mP5bTRBFBhNXonenpG/Gg=
 github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260929132147-61be6c4e6a3b/go.mod h1:hmLC8GJPp+BrpBgrgJnacvI4fZGIhasuy1ROJJ8GR4E=
+github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260930053526-42e9ccaae16e h1:OlFyvrx1ZFzDpGHuR/Snvk7VGkLjFCeqE/+na1x5MaU=
+github.com/reF1nd/quic-go v0.61.0-sing-box-mod.7.0.20260930053526-42e9ccaae16e/go.mod h1:hmLC8GJPp+BrpBgrgJnacvI4fZGIhasuy1ROJJ8GR4E=
 github.com/reF1nd/sing v0.9.6-0.20260924064739-a7656b438274 h1:SoReXEXd85ek2SWhvuLcj6aFLvGhvUFnFwsM/Wz2lUE=
 github.com/reF1nd/sing v0.9.6-0.20260924064739-a7656b438274/go.mod h1:K3Owt3xPhHugvlnlPPxZJ/exXdaJfEPOTNorGk4AXjo=
 github.com/stretchr/testify v1.11.1 h1:7s2iGBzp5EwR7/aIZr8ao5+dra3wiQyKjjFuvgVKu7U=
